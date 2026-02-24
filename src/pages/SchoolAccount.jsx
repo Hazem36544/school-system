@@ -1,10 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { User, Phone, Mail, Hash, ShieldCheck, LogOut, X, Send, Edit, GraduationCap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { User, Phone, Mail, Hash, ShieldCheck, LogOut, X, Send, Edit, GraduationCap, MapPin, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { authAPI } from '../services/api'; // استيراد الـ API
 
 const SchoolAccount = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [schoolData, setSchoolData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    // جلب بيانات المدرسة المُسجلة دخولاً حالياً
+    useEffect(() => {
+        const fetchSchoolData = async () => {
+            try {
+                setLoading(true);
+                // جلب بيانات المستخدم الحالي
+                const response = await authAPI.getCurrentUser();
+                setSchoolData(response.data);
+            } catch (error) {
+                console.error("خطأ في جلب بيانات المدرسة:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSchoolData();
+    }, []);
+
+    // دالة تسجيل الخروج
+    const handleLogout = () => {
+        localStorage.removeItem('wesal_token');
+        localStorage.removeItem('wesal_user_data');
+        localStorage.removeItem('wesal_user_role');
+        navigate('/vision-login'); // أو مسار تسجيل الدخول الخاص بك
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#F3F4F6] flex font-sans" dir="rtl">
+                <Sidebar />
+                <div className="flex-1 flex justify-center items-center">
+                    <Loader2 className="w-12 h-12 text-[#1e3a8a] animate-spin" />
+                </div>
+            </div>
+        );
+    }
+
+    // تجهيز البيانات للعرض، مع وضع قيم افتراضية في حالة النقص
+    const schoolName = schoolData?.name || schoolData?.fullName || 'مدرسة غير محددة';
+    const schoolEmail = schoolData?.email || 'غير متوفر';
+    const schoolPhone = schoolData?.contactNumber || schoolData?.phoneNumber || 'غير متوفر';
+    const schoolCode = schoolData?.id || schoolData?.userName || 'غير متوفر';
+    const schoolLocation = [schoolData?.governorate, schoolData?.address].filter(Boolean).join(' - ') || 'غير متوفر';
+
 
     return (
         <div className="min-h-screen bg-[#F3F4F6] flex font-sans" dir="rtl">
@@ -13,14 +62,12 @@ const SchoolAccount = () => {
             <div className="flex-1 mr-20 p-8 min-h-screen overflow-y-auto">
                 <div className="max-w-7xl mx-auto">
                     
-                    {/* --- بداية الهيدر الجديد (الموحد مع باقي السيستم) --- */}
+                    {/* --- الهيدر الجديد --- */}
                     <div className="relative w-full bg-[#1e3a8a] rounded-[2rem] p-6 text-white flex flex-col md:flex-row items-center justify-between overflow-hidden shadow-xl mb-8">
                         
-                        {/* زخارف الخلفية */}
                         <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
                         <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-400/10 rounded-full blur-2xl pointer-events-none translate-y-1/2 -translate-x-1/2"></div>
 
-                        {/* المحتوى النصي */}
                         <div className="flex items-center gap-5 relative z-10 w-full md:w-auto">
                             <div>
                                 <h1 className="text-2xl font-bold mb-1">الحساب الشخصي</h1>
@@ -28,13 +75,10 @@ const SchoolAccount = () => {
                             </div>
                         </div>
 
-                        {/* الأيقونة التعبيرية على اليسار */}
                         <div className="hidden md:flex bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10 relative z-10">
                            <User className="w-8 h-8 text-blue-100" />
                         </div>
                     </div>
-                    {/* --- نهاية الهيدر الجديد --- */}
-
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         {/* Right Column (Personal Info) - 8 Cols */}
@@ -45,36 +89,48 @@ const SchoolAccount = () => {
                                 <div className="space-y-6">
                                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl group hover:bg-blue-50 transition-colors">
                                         <div className="flex items-center gap-4">
-                                            <div className="bg-blue-100 p-3 rounded-full text-blue-600">
+                                            <div className="bg-blue-100 p-3 rounded-full text-blue-600 flex-shrink-0">
                                                 <Hash className="h-6 w-6" />
                                             </div>
-                                            <div>
-                                                <p className="text-sm text-gray-400 mb-1">كود المدرسة</p>
-                                                <p className="font-bold text-gray-800 text-lg">sch-cairo-0142</p>
+                                            <div className="overflow-hidden">
+                                                <p className="text-sm text-gray-400 mb-1">كود المدرسة / المعرف</p>
+                                                <p className="font-bold text-gray-800 text-sm md:text-lg font-mono truncate">{schoolCode}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl group hover:bg-blue-50 transition-colors">
                                         <div className="flex items-center gap-4">
-                                            <div className="bg-blue-100 p-3 rounded-full text-blue-600">
+                                            <div className="bg-blue-100 p-3 rounded-full text-blue-600 flex-shrink-0">
                                                 <Phone className="h-6 w-6" />
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-400 mb-1">رقم الجوال</p>
-                                                <p className="font-bold text-gray-800 text-lg" dir="ltr">0221234567</p>
+                                                <p className="text-sm text-gray-400 mb-1">رقم الجوال / التواصل</p>
+                                                <p className="font-bold text-gray-800 text-lg" dir="ltr">{schoolPhone}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl group hover:bg-blue-50 transition-colors">
                                         <div className="flex items-center gap-4">
-                                            <div className="bg-blue-100 p-3 rounded-full text-blue-600">
+                                            <div className="bg-blue-100 p-3 rounded-full text-blue-600 flex-shrink-0">
                                                 <Mail className="h-6 w-6" />
                                             </div>
-                                            <div>
+                                            <div className="overflow-hidden">
                                                 <p className="text-sm text-gray-400 mb-1">البريد الإلكتروني</p>
-                                                <p className="font-bold text-gray-800 text-lg font-mono">alfaisal@schools.edu.eg</p>
+                                                <p className="font-bold text-gray-800 text-lg font-mono truncate">{schoolEmail}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl group hover:bg-blue-50 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-blue-100 p-3 rounded-full text-blue-600 flex-shrink-0">
+                                                <MapPin className="h-6 w-6" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-400 mb-1">العنوان والمحافظة</p>
+                                                <p className="font-bold text-gray-800 text-lg">{schoolLocation}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -93,16 +149,15 @@ const SchoolAccount = () => {
                         {/* Left Column (Profile Card) - 4 Cols */}
                         <div className="lg:col-span-4 space-y-6 order-1 lg:order-2">
                             <div className="bg-white p-8 rounded-3xl shadow-sm text-center relative overflow-hidden">
-                                {/* خلفية خفيفة للكارت */}
                                 <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-blue-50 to-white z-0"></div>
                                 
                                 <div className="relative z-10 w-32 h-32 bg-white rounded-full mx-auto mb-6 flex items-center justify-center border-4 border-blue-50 shadow-xl">
                                     <GraduationCap className="h-16 w-16 text-[#1e3a8a]" />
                                 </div>
                                 <div className="relative z-10">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">مدرسة الأمير فيصل الابتدائية</h2>
-                                    <span className="bg-blue-100 text-blue-700 px-6 py-1.5 rounded-full font-bold text-sm inline-block">
-                                        مدرسة
+                                    <h2 className="text-xl font-bold text-gray-800 mb-2 leading-snug">{schoolName}</h2>
+                                    <span className="bg-blue-100 text-blue-700 px-6 py-1.5 rounded-full font-bold text-sm inline-block mt-2">
+                                        حساب مدرسة
                                     </span>
                                 </div>
                             </div>
@@ -117,10 +172,13 @@ const SchoolAccount = () => {
                                 </p>
                             </div>
 
-                            <Link to="/" className="block w-full bg-red-50 text-red-600 py-4 rounded-2xl font-bold text-center hover:bg-red-100 transition-colors border border-red-100 flex items-center justify-center gap-2">
+                            <button 
+                                onClick={handleLogout}
+                                className="w-full bg-red-50 text-red-600 py-4 rounded-2xl font-bold text-center hover:bg-red-100 transition-colors border border-red-100 flex items-center justify-center gap-2"
+                            >
                                 <LogOut className="h-5 w-5 rotate-180" />
                                 تسجيل الخروج
-                            </Link> 
+                            </button> 
                         </div>
                     </div>
                 </div>
@@ -130,7 +188,6 @@ const SchoolAccount = () => {
             {isEditModalOpen && (
                 <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden transform scale-100 transition-all">
-                        {/* Header */}
                         <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
                             <h2 className="text-xl font-bold">طلب تعديل البيانات</h2>
                             <button 
@@ -141,7 +198,6 @@ const SchoolAccount = () => {
                             </button>
                         </div>
                         
-                        {/* Body */}
                         <div className="p-6">
                             <label className="block text-sm font-bold text-gray-700 mb-2">سبب طلب التعديل
                             <span className="text-red-500 mr-1">*</span>
@@ -159,9 +215,11 @@ const SchoolAccount = () => {
                             </div>
                         </div>
 
-                        {/* Footer */}
                         <div className="p-6 border-t border-gray-100 flex gap-3 bg-gray-50">
-                            <button className="flex-1 bg-[#1e3a8a] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#172554] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/10">
+                            <button 
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="flex-1 bg-[#1e3a8a] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#172554] transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/10"
+                            >
                                 <Send className="h-4 w-4" />
                                 إرسال الطلب
                             </button>

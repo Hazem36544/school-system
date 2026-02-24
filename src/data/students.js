@@ -26,7 +26,7 @@ export const studentsData = [
                 }
             }
         ]
-    },
+    }, //
     {
         id: '2',
         name: 'علي حسن المصري',
@@ -40,7 +40,7 @@ export const studentsData = [
         attendanceRate: '88%',
         lastReportDate: '10 يناير 2026',
         reports: []
-    },
+    }, //
     {
         id: '3',
         name: 'خالد عمر السيد',
@@ -54,7 +54,7 @@ export const studentsData = [
         attendanceRate: '92%',
         lastReportDate: '12 يناير 2026',
         reports: []
-    },
+    }, //
     {
         id: '4',
         name: 'سارة محمد عبدالله',
@@ -67,6 +67,90 @@ export const studentsData = [
         status: 'ممتاز',
         attendanceRate: '98%',
         lastReportDate: '20 يناير 2026',
+        reports: []
+    }, //
+    {
+        id: '5',
+        name: 'يوسف إبراهيم خليل',
+        grade: 'الصف السادس الابتدائي',
+        classNum: '1',
+        level: 'المرحلة الابتدائية',
+        age: 12,
+        parent: 'إبراهيم خليل',
+        caseNumber: 'CASE-12733',
+        status: 'جيد جداً',
+        attendanceRate: '90%',
+        lastReportDate: '05 فبراير 2026',
+        reports: []
+    },
+    {
+        id: '6',
+        name: 'ليلى محمود سليمان',
+        grade: 'الصف الأول الابتدائي',
+        classNum: '3',
+        level: 'المرحلة الابتدائية',
+        age: 7,
+        parent: 'محمود سليمان',
+        caseNumber: 'CASE-12844',
+        status: 'ممتاز',
+        attendanceRate: '96%',
+        lastReportDate: '02 فبراير 2026',
+        reports: []
+    },
+    {
+        id: '7',
+        name: 'مريم أحمد جودة',
+        grade: 'الصف الثالث الابتدائي',
+        classNum: '2',
+        level: 'المرحلة الابتدائية',
+        age: 9,
+        parent: 'أحمد جودة',
+        caseNumber: 'CASE-12955',
+        status: 'جيد',
+        attendanceRate: '85%',
+        lastReportDate: '11 فبراير 2026',
+        reports: []
+    },
+    {
+        id: '8',
+        name: 'عمر ياسر الشافعي',
+        grade: 'الصف الخامس الابتدائي',
+        classNum: '4',
+        level: 'المرحلة الابتدائية',
+        age: 11,
+        parent: 'ياسر الشافعي',
+        caseNumber: 'CASE-13066',
+        status: 'جيد جداً',
+        attendanceRate: '91%',
+        lastReportDate: '08 فبراير 2026',
+        reports: []
+    },
+    {
+        id: '9',
+        name: 'جنى إيهاب كمال',
+        grade: 'الصف الرابع الابتدائي',
+        classNum: '6',
+        level: 'المرحلة الابتدائية',
+        age: 10,
+        parent: 'إيهاب كمال',
+        caseNumber: 'CASE-13177',
+        status: 'ممتاز',
+        attendanceRate: '99%',
+        lastReportDate: '12 فبراير 2026',
+        reports: []
+    },
+    {
+        id: '10',
+        name: 'محمود صبري عبد العزيز',
+        grade: 'الصف الثاني الابتدائي',
+        classNum: '1',
+        level: 'المرحلة الابتدائية',
+        age: 8,
+        parent: 'صبري عبد العزيز',
+        caseNumber: 'CASE-13288',
+        status: 'مقبول',
+        attendanceRate: '82%',
+        lastReportDate: '01 فبراير 2026',
         reports: []
     }
 ];

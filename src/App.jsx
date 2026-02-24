@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
@@ -8,39 +9,37 @@ import StudentReports from './pages/StudentReports';
 import AddReport from './pages/AddReport';
 import SchoolAccount from './pages/SchoolAccount';
 
-function App() {
-  // --- 1. استعادة حالة الدخول من المتصفح لضمان عدم الخروج عند الـ Refresh ---
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('school_isLoggedIn') === 'true';
-  });
+// Separate component for Routes to consume useAuth
+const AppRoutes = () => {
+  const { isLoggedIn, login } = useAuth();
 
-  // دالة لتسجيل الدخول وحفظ الحالة
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-    localStorage.setItem('school_isLoggedIn', 'true');
-  };
+  // ✅ التعديل الجديد: التحقق من وجود أمر إجباري لتغيير كلمة المرور
+  const needsPasswordChange = localStorage.getItem('force_change_password') === 'true';
 
-  // دالة لتسجيل الخروج ومسح الحالة
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    localStorage.removeItem('school_isLoggedIn');
+  const handleLoginSuccess = (userData) => {
+    if (login) {
+      // إذا كان الـ AuthContext يحتوي على دالة login، استخدمها لتحديث الـ State
+      login(userData);
+    } else {
+      // حل بديل إجباري: إذا لم تكن الدالة موجودة، قم بتوجيه المتصفح للداشبورد مباشرة
+      window.location.href = '/dashboard';
+    }
   };
 
   return (
-    // --- 2. إضافة الـ basename ليعمل الموقع على مسار /school-system/ ---
     <Router basename={import.meta.env.BASE_URL}>
       <ScrollToTop />
       <Routes>
-        {/* إذا كان مسجل دخول يذهب للداشبورد، وإلا يذهب للوجن */}
         <Route 
           path="/" 
-          element={isLoggedIn ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} />} 
+          // ✅ التعديل الدقيق هنا: إذا كان مسجل دخول *وليس* مجبراً على تغيير الباسورد، يذهب للداشبورد. 
+          // غير ذلك يبقى في صفحة تسجيل الدخول ليعرض شاشة التغيير.
+          element={(isLoggedIn && !needsPasswordChange) ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLoginSuccess} />} 
         />
         
-        {/* حماية المسارات: لا تفتح إلا لو isLoggedIn = true */}
         <Route 
           path="/dashboard" 
-          element={isLoggedIn ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/" />} 
+          element={isLoggedIn ? <Dashboard /> : <Navigate to="/" />} 
         />
         <Route 
           path="/search" 
@@ -60,13 +59,20 @@ function App() {
         />
         <Route 
           path="/account" 
-          element={isLoggedIn ? <SchoolAccount onLogout={handleLogout} /> : <Navigate to="/" />} 
+          element={isLoggedIn ? <SchoolAccount /> : <Navigate to="/" />} 
         />
 
-        {/* مسار احتياطي لأي رابط خطأ */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
 

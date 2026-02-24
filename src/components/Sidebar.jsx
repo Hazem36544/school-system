@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Search, User, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
-const Sidebar = () => {
+const Sidebar = () => { 
   const location = useLocation();
+  const { logout } = useAuth();
 
   // دالة تحديد ستايل الرابط النشط وغير النشط
   const getLinkClass = (path) => {
@@ -21,17 +23,17 @@ const Sidebar = () => {
       dir="rtl"
     >
       
-      {/* --- 1. الشعار (مُكبر وبدون خلفية ليتناسق مع الهوية) --- */}
+      {/* --- 1. الشعار --- */}
       <div className="mb-8 flex-shrink-0 w-full flex justify-center">
-    <img 
-      src={`${import.meta.env.BASE_URL}logo.svg`} 
-      alt="شعار وصال" 
-      className="w-20 h-20 object-contain hover:scale-110 transition-transform duration-300 drop-shadow-xl"
-      onError={(e) => { e.target.src = 'https://via.placeholder.com/80?text=School'; }} 
-    />
-</div>
+        <img 
+          src={`${import.meta.env.BASE_URL}logo.svg`} 
+          alt="شعار وصال" 
+          className="w-20 h-20 object-contain hover:scale-110 transition-transform duration-300 drop-shadow-xl"
+          onError={(e) => { e.target.src = 'https://via.placeholder.com/80?text=School'; }} 
+        />
+      </div>
 
-      {/* --- 2. روابط التنقل (أيقونة + نص) --- */}
+      {/* --- 2. روابط التنقل --- */}
       <nav className="flex flex-col items-center gap-3 w-full px-2 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden">
         
         <Link to="/dashboard" className={getLinkClass('/dashboard')}>
@@ -41,7 +43,7 @@ const Sidebar = () => {
         
         <Link to="/search" className={getLinkClass('/search')}>
           <Search className="w-6 h-6 mb-0.5 transition-colors duration-300" />
-          <span className="text-[11px] font-bold tracking-wide text-center leading-tight">بحث طلاب</span>
+          <span className="text-[11px] font-bold tracking-wide text-center leading-tight">بحث عن الطلاب</span>
         </Link>
         
         <Link to="/account" className={getLinkClass('/account')}>
@@ -51,15 +53,15 @@ const Sidebar = () => {
 
       </nav>
 
-      {/* --- 3. تسجيل الخروج --- */}
+      {/* --- 3. زر تسجيل الخروج (تم تحويله لـ button لضمان مسح البيانات) --- */}
       <div className="mt-auto pt-4 w-full px-2 pb-2">
-         <Link 
-            to="/" 
-            className="w-full py-3 flex flex-col items-center justify-center gap-1 rounded-2xl text-red-300 hover:bg-red-500/20 hover:text-red-100 transition-all duration-300 border border-transparent hover:border-red-500/20"
+         <button 
+            onClick={logout}
+            className="w-full py-3 flex flex-col items-center justify-center gap-1 rounded-2xl text-red-300 hover:bg-red-500/20 hover:text-red-100 transition-all duration-300 border border-transparent hover:border-red-500/20 outline-none"
          >
           <LogOut className="w-6 h-6" />
           <span className="text-[10px] font-bold">خروج</span>
-        </Link>
+        </button>
       </div>
 
     </div>
