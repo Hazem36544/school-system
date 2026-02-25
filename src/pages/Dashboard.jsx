@@ -6,12 +6,13 @@ import StudentCard from '../components/StudentCard';
 import SideWidgets from '../components/SideWidgets';
 import { Users, FileText, Award, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { schoolAPI, authAPI } from '../services/api'; // تم إضافة authAPI
+// ✅ تم إزالة authAPI واستخدام schoolAPI فقط لأنها تحتوي على المسار المخصص للمدرسة
+import { schoolAPI } from '../services/api'; 
 
 const Dashboard = () => {
     const [students, setStudents] = useState([]);
     const [totalStudents, setTotalStudents] = useState(0);
-    const [schoolData, setSchoolData] = useState(null); // حالة جديدة لبيانات المدرسة
+    const [schoolData, setSchoolData] = useState(null); 
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -19,15 +20,15 @@ const Dashboard = () => {
             try {
                 setLoading(true);
                 
-                // جلب قائمة الطلاب وبيانات المدرسة في نفس الوقت
-                const [childrenResponse, userResponse] = await Promise.all([
+                // ✅ جلب قائمة الطلاب وبيانات المدرسة الحقيقية من السيرفر في نفس الوقت
+                const [childrenResponse, schoolResponse] = await Promise.all([
                     schoolAPI.listChildren({ PageNumber: 1, PageSize: 50 }),
-                    authAPI.getCurrentUser()
+                    schoolAPI.getCurrentSchool() // استخدام المسار الصحيح للمدرسة
                 ]);
                 
                 setStudents(childrenResponse.data?.items || []);
                 setTotalStudents(childrenResponse.data?.totalCount || 0);
-                setSchoolData(userResponse.data);
+                setSchoolData(schoolResponse.data);
 
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
@@ -52,7 +53,9 @@ const Dashboard = () => {
       
       <div className="flex-1 mr-24 p-8 min-h-screen overflow-y-auto transition-all duration-300">
         <div className="max-w-7xl mx-auto">
-            <DashboardHeader />
+            
+            {/* ✅ تمرير بيانات المدرسة وحالة التحميل إلى مكون الهيدر */}
+            <DashboardHeader schoolData={schoolData} isLoading={loading} />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {stats.map(stat => (
@@ -100,7 +103,7 @@ const Dashboard = () => {
                       </div>
                 </div>
 
-                {/* الويدجت الجانبية - تم تمرير البيانات لها */}
+                {/* الويدجت الجانبية */}
                  <div className="lg:col-span-4 space-y-8 sticky top-8 mt-14">
                     <SideWidgets schoolData={schoolData} isLoading={loading} />
                  </div>

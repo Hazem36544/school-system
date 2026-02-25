@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GraduationCap } from 'lucide-react';
-import { authAPI } from '../services/api'; // استيراد الـ API
+// ✅ 1. استيراد schoolAPI بدلاً من authAPI
+import { schoolAPI } from '../services/api'; 
 
 const DashboardHeader = () => {
   const [schoolData, setSchoolData] = useState(null);
@@ -9,7 +10,8 @@ const DashboardHeader = () => {
   useEffect(() => {
     const fetchSchoolData = async () => {
       try {
-        const response = await authAPI.getCurrentUser();
+        // ✅ 2. استخدام دالة جلب بيانات المدرسة الصحيحة المربوطة بالسيرفر
+        const response = await schoolAPI.getCurrentSchool();
         setSchoolData(response.data);
       } catch (error) {
         console.error("خطأ في جلب بيانات المدرسة:", error);
@@ -19,10 +21,11 @@ const DashboardHeader = () => {
     fetchSchoolData();
   }, []);
 
-  // تجهيز المتغيرات للواجهة مع قيم افتراضية لمنع كسر التصميم
-  const schoolName = schoolData?.name || schoolData?.fullName || 'جاري تحميل البيانات...';
+  // ✅ 3. تجهيز المتغيرات بناءً على الحقول الفعلية القادمة من السيرفر (SchoolResponse)
+  const schoolName = schoolData?.name || 'جاري تحميل البيانات...';
   const location = [schoolData?.governorate, schoolData?.address].filter(Boolean).join(' - ') || 'العنوان غير متوفر';
-  const schoolCode = schoolData?.id || schoolData?.userName || '---';
+  // استخدام username ككود للمدرسة، وإذا لم يتوفر نأخذ أول 8 حروف من الـ id
+  const schoolCode = schoolData?.username || (schoolData?.id ? schoolData.id.substring(0, 8).toUpperCase() : '---');
 
   return (
     <div className="relative overflow-hidden mb-8 rounded-[2.5rem] shadow-xl">

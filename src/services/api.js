@@ -90,13 +90,12 @@ export const authAPI = {
     loginParent: (creds) => api.post('/api/auth/parent/sign-in', creds),
     changePassword: (data) => api.patch('/api/users/change-password', data),
     
-    // محاكاة جلب المستخدم الحالي
+    // محاكاة جلب المستخدم الحالي (يمكنك لاحقاً التخلي عنها واستخدام الدوال المخصصة لكل لوحة)
     getCurrentUser: () => {
         const savedUser = localStorage.getItem('wesal_user_data');
         if (savedUser) {
             return Promise.resolve({ data: JSON.parse(savedUser) });
         } else {
-            // بيانات افتراضية لفك تعليق الشاشة حتى يتم برمجة مسار جلب البروفايل من الباك إند
             return Promise.resolve({ 
                 data: {
                     name: "مدرسة وصال التجريبية",
@@ -115,38 +114,25 @@ export const authAPI = {
  * --- [ B. خدمات إدارة القضايا والأسر - Court Workflow ] ---
  */
 export const courtAPI = {
-    // 1. الأسرة (Families)
     enrollFamily: (data) => api.post('/api/families', data),
     getFamily: (id) => api.get(`/api/families/${id}`),
     searchFamilies: (params) => api.get('/api/courts/me/families', { params }),
-    
-    // 2. أولياء الأمور (Parents)
     updateParent: (id, data) => api.put(`/api/parents/${id}`, data),
-
-    // 3. القضايا (Court Cases)
     createCase: (data) => api.post('/api/court-cases', data),
     getCaseByFamily: (familyId) => api.get(`/api/court-cases/${familyId}`),
     closeCase: (caseId, notes) => api.patch('/api/court-cases/close', { closureNotes: notes }, { params: { courtCaseId: caseId } }),
-
-    // 4. النفقة (Alimony)
     createAlimony: (data) => api.post('/api/alimonies', data),
     updateAlimony: (id, data) => api.put(`/api/alimonies/${id}`, data, { params: { alimoneyId: id } }),
     deleteAlimony: (id) => api.delete(`/api/alimonies/${id}`, { params: { alimoneyId: id } }),
     getAlimonyByCourtCase: (caseId) => api.get(`/api/court-cases/${caseId}/alimony`),
-    
-    // 5. الحضانة (Custody)
     createCustody: (data) => api.post('/api/custodies', data),
     updateCustody: (id, data) => api.put(`/api/custodies/${id}`, data),
     deleteCustody: (id) => api.delete(`/api/custodies/${id}`),
     getCustodyByCourtCase: (caseId) => api.get(`/api/court-cases/${caseId}/custodies`),
-    
-    // 6. جداول الزيارة (Schedules)
     createSchedule: (data) => api.post('/api/visitation-schedules', data),
     updateSchedule: (id, data) => api.put(`/api/visitation-schedules/${id}`, data),
     deleteSchedule: (id) => api.delete(`/api/visitation-schedules/${id}`),
     getVisitationScheduleByCourtCase: (caseId) => api.get(`/api/court-cases/${caseId}/visitation-schedules`),
-
-    // 7. المستحقات المالية (Payments Due)
     listPaymentsDueByFamily: (familyId) => api.get(`/api/families/${familyId}/payments-due`),
     listPaymentsHistory: (paymentDueId) => api.get(`/api/payments-due/${paymentDueId}/payments`),
     withdrawPayment: (paymentDueId, data) => api.post(`/api/payments-due/${paymentDueId}/withdraw`, data),
@@ -176,11 +162,17 @@ export const visitationAPI = {
  * --- [ E. خدمات المدرسة - Schools ] ---
  */
 export const schoolAPI = {
+    // ✅ إضافة دالة جلب بيانات المدرسة الحالية
+    getCurrentSchool: () => api.get('/api/schools/me'),
+    
+    // ✅ إضافة دالة تحديث بيانات المدرسة
+    updateSchoolProfile: (id, data) => api.put(`/api/schools/${id}`, data),
+
     listSchools: (params) => api.get('/api/schools', { params }),
     registerSchool: (data) => api.post('/api/schools', data),
     listChildren: (params) => api.get('/api/schools/me/children', { params }),
     
-    // ✅ التعديل هنا: إزالة الـ headers ليتم إرسال الـ JSON بشكل صحيح
+    // إزالة الـ headers ليتم إرسال الـ JSON بشكل صحيح
     uploadReport: (data) => api.post('/api/school-reports', data),
     
     listReportsByChild: (childId) => api.get(`/api/school-reports/${childId}`),
