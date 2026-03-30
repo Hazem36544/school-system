@@ -25,12 +25,12 @@ export default function LoginPage({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // التقاط أمر التغيير الإجباري وفتح الشاشة أوتوماتيكياً
+  // Capture force change password command and open screen automatically
   useEffect(() => {
     if (localStorage.getItem("force_change_password") === "true") {
       setStep("change_password");
       setPassword("");
-      setError("يرجى تغيير كلمة المرور المؤقتة قبل الدخول للداشبورد");
+      setError("يرجى تغيير كلمة المرور المؤقتة قبل الدخول إلى لوحة التحكم");
     }
   }, []);
 
@@ -45,7 +45,7 @@ export default function LoginPage({ onLogin }) {
     setError("");
 
     try {
-      console.log("جاري محاولة تسجيل دخول المدرسة...");
+      console.log("Attempting school login...");
       const response = await api.post("/api/auth/school/sign-in", {
         username: username,
         password: password,
@@ -54,30 +54,30 @@ export default function LoginPage({ onLogin }) {
       if (response.data && response.data.token) {
         localStorage.setItem("wesal_school_token", response.data.token);
 
-        // ✅ التعديل السحري: فحص التوكن قبل الدخول للداشبورد
+        // Check token before entering dashboard
         let isTempPassword = false;
         try {
-          // فك تشفير التوكن لقراءة البيانات اللي جواه
+          // Decode token to read data inside
           const payload = JSON.parse(atob(response.data.token.split(".")[1]));
-          // لو الباك إند باعت إن الباسورد مؤقت
+          // If backend sent that password is temporary
           if (payload.tmp_pwd === "True" || payload.tmp_pwd === true) {
             isTempPassword = true;
           }
         } catch (e) {
-          console.error("خطأ في قراءة التوكن", e);
+          console.error("Error reading token", e);
         }
 
         if (isTempPassword) {
-          // لو مؤقت: نمنع الدخول للداشبورد ونفتح شاشة التغيير فوراً
-          console.log("الباسورد مؤقت، جاري التحويل لشاشة التغيير...");
+          // If temporary: prevent entry to dashboard and open change screen immediately
+          console.log("Temporary password, redirecting to change screen...");
           setStep("change_password");
-          toast("يجب تأمين حسابك بكلمة مرور جديدة قبل الدخول", {
+          toast("يجب عليك تأمين حسابك بكلمة مرور جديدة قبل الدخول", {
             icon: "🔒",
             duration: 4000,
           });
         } else {
-          // لو سليم: ندخل للداشبورد بأمان
-          console.log("تم تسجيل الدخول بنجاح");
+          // If valid: enter dashboard safely
+          console.log("Login successful");
           onLogin && onLogin(response.data);
         }
       }
@@ -91,23 +91,23 @@ export default function LoginPage({ onLogin }) {
         if (
           err.response.status === 403 &&
           (errorMsg.toLowerCase().includes("temporary password") ||
-            errorMsg.includes("تغيير كلمة المرور"))
+            errorMsg.toLowerCase().includes("change password"))
         ) {
           setStep("change_password");
           setError("");
-          toast("يجب تأمين حسابك بكلمة مرور جديدة قبل الدخول", {
+          toast("يجب عليك تأمين حسابك بكلمة مرور جديدة قبل الدخول", {
             icon: "🔒",
             duration: 4000,
           });
         } else if (err.response.status === 401 || err.response.status === 404) {
           setError(
-            "بيانات الدخول غير صحيحة. تأكد من اسم المستخدم وكلمة المرور.",
+            "بيانات الدخول غير صحيحة. تحقق من اسم المستخدم وكلمة المرور.",
           );
         } else {
-          setError(errorMsg || "حدث خطأ في الخادم، يرجى المحاولة لاحقاً.");
+          setError(errorMsg || "خطأ في الخادم، يرجى المحاولة مرة أخرى لاحقاً.");
         }
       } else if (err.code === "ERR_NETWORK") {
-        setError("فشل الاتصال بالخادم. تأكد من تشغيل الباك إند.");
+        setError("فشل الاتصال. تأكد من تشغيل الخادم.");
       } else {
         setError("حدث خطأ غير متوقع.");
       }
@@ -120,15 +120,15 @@ export default function LoginPage({ onLogin }) {
     if (e) e.preventDefault();
 
     if (!password || !newPassword || !confirmPassword) {
-      setError("يرجى تعبئة جميع الحقول");
+      setError("يرجى ملء جميع الحقول");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("كلمتا المرور غير متطابقتين");
+      setError("كلمات المرور غير متطابقة");
       return;
     }
     if (newPassword.length < 6) {
-      setError("يجب أن تتكون كلمة المرور من 6 خانات على الأقل");
+      setError("يجب أن تكون كلمة المرور 6 أحرف على الأقل");
       return;
     }
 
@@ -152,13 +152,13 @@ export default function LoginPage({ onLogin }) {
     } catch (err) {
       console.error("Change Password Error Details:", err.response?.data);
       const validationErrors = err.response?.data?.errors;
-      let errorMessage = "فشل في تغيير كلمة المرور.";
+      let errorMessage = "Failed to change password.";
 
       if (validationErrors) {
         if (Array.isArray(validationErrors)) {
           errorMessage = validationErrors
             .map(
-              (errItem) => errItem.description || "كلمة المرور لا تطابق الشروط",
+              (errItem) => errItem.description || "Password does not meet requirements",
             )
             .join(" - ");
         } else {
@@ -175,7 +175,7 @@ export default function LoginPage({ onLogin }) {
 
       if (err.response?.status === 400) {
         toast.error(
-          "يرجى التأكد من أن كلمة المرور المؤقتة صحيحة وشروط الجديدة.",
+          "يرجى التأكد من صحة كلمة المرور المؤقتة واستيفاء المتطلبات.",
         );
       } else {
         toast.error("حدث خطأ أثناء المحاولة.");
@@ -187,7 +187,7 @@ export default function LoginPage({ onLogin }) {
 
   const handleForgotPassword = (e) => {
     e.preventDefault();
-    toast("يرجى التواصل مع الدعم الفني بمحكمة الأسرة لاستعادة الحساب.", {
+    toast("يرجى الاتصال بالدعم الفني لمحكمة الأسرة لاستعادة حسابك.", {
       icon: "ℹ️",
     });
   };
@@ -195,35 +195,34 @@ export default function LoginPage({ onLogin }) {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
-      dir="rtl"
-      style={{ fontFamily: "Cairo, sans-serif", background: "#F8FAFC" }}
+      style={{ fontFamily: "Inter, sans-serif", background: "#F8FAFC" }}
     >
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#1e3a8a]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#1e3a8a]/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-96 h-96 bg-[#1e3a8a]/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#1e3a8a]/5 rounded-full blur-3xl translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
       <div className="w-full max-w-[460px] relative z-10">
         <div className="flex justify-center mb-6">
           <div className="w-32 h-32">
             <img
               src={`${import.meta.env.BASE_URL}logo.svg`}
-              alt="شعار وصال"
+              alt="Wesal Logo"
               className="w-full h-full object-contain"
             />
           </div>
         </div>
 
-        <div className="text-center mb-8">
+        <div className="text-center mb-8" dir="rtl">
           <h1 className="text-3xl font-black text-[#1e3a8a] mb-2 tracking-tight">
-            نظام إدارة المدرسة
+            نظام إدارة المدارس
           </h1>
           <p className="text-sm font-bold text-gray-500 tracking-wider">
             بوابة وصال - لم الشمل
           </p>
         </div>
 
-        {/* شاشة تسجيل الدخول العادية */}
+        {/* Regular Login Screen */}
         {step === "login" && (
-          <div className="bg-white rounded-[2rem] shadow-xl shadow-blue-900/5 p-8 border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-white rounded-[2rem] shadow-xl shadow-blue-900/5 p-8 border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500" dir="rtl">
             <h2 className="text-xl font-bold mb-8 text-center text-gray-800">
               تسجيل الدخول
             </h2>
@@ -237,7 +236,7 @@ export default function LoginPage({ onLogin }) {
               )}
 
               <div>
-                <label className="block mb-2 text-gray-600 font-bold text-sm">
+                <label className="block mb-2 text-gray-600 font-bold text-sm text-right">
                   اسم المستخدم (المدرسة)
                 </label>
                 <input
@@ -245,14 +244,14 @@ export default function LoginPage({ onLogin }) {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="sch-cairo-xxxx"
-                  className="w-full text-right px-4 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none"
+                  className="w-full text-left px-4 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none"
                   dir="ltr"
                   disabled={isLoading}
                 />
               </div>
 
               <div>
-                <label className="block mb-2 text-gray-600 font-bold text-sm">
+                <label className="block mb-2 text-gray-600 font-bold text-sm text-right">
                   كلمة المرور
                 </label>
                 <div className="relative flex items-center">
@@ -261,14 +260,14 @@ export default function LoginPage({ onLogin }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="أدخل كلمة المرور"
-                    className="w-full text-right pr-4 pl-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg"
+                    className="w-full text-left pl-4 pr-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg"
                     dir="ltr"
                     disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-4 text-gray-400 hover:text-[#1e3a8a] transition-colors"
+                    className="absolute right-4 text-gray-400 hover:text-[#1e3a8a] transition-colors"
                     disabled={isLoading}
                   >
                     {showPassword ? (
@@ -287,7 +286,7 @@ export default function LoginPage({ onLogin }) {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-6 h-6 animate-spin" /> جاري الدخول...
+                    <Loader2 className="w-6 h-6 animate-spin" /> جاري تسجيل الدخول...
                   </>
                 ) : (
                   "تسجيل الدخول"
@@ -307,9 +306,9 @@ export default function LoginPage({ onLogin }) {
           </div>
         )}
 
-        {/* شاشة تغيير كلمة المرور الإجبارية */}
+        {/* Forced Change Password Screen */}
         {step === "change_password" && (
-          <div className="bg-white rounded-[2rem] shadow-2xl shadow-blue-900/10 p-8 border border-blue-100 relative overflow-hidden animate-in zoom-in duration-300">
+          <div className="bg-white rounded-[2rem] shadow-2xl shadow-blue-900/10 p-8 border border-blue-100 relative overflow-hidden animate-in zoom-in duration-300" dir="rtl">
             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-400 to-[#1e3a8a]"></div>
 
             <div className="flex flex-col items-center mb-8 mt-4">
@@ -320,8 +319,7 @@ export default function LoginPage({ onLogin }) {
                 تأمين الحساب
               </h2>
               <p className="text-center text-gray-500 text-sm leading-relaxed">
-                يرجى تغيير كلمة المرور المؤقتة لحساب المدرسة بكلمة مرور جديدة
-                خاصة بك لضمان السرية.
+                يرجى تغيير كلمة المرور المؤقتة لحساب المدرسة إلى كلمة مرور جديدة خاصة بك لضمان السرية.
               </p>
             </div>
 
@@ -334,7 +332,7 @@ export default function LoginPage({ onLogin }) {
               )}
 
               <div>
-                <label className="block mb-2 text-gray-600 font-bold text-sm">
+                <label className="block mb-2 text-gray-600 font-bold text-sm text-right">
                   كلمة المرور المؤقتة (الحالية)
                 </label>
                 <div className="relative flex items-center">
@@ -343,13 +341,13 @@ export default function LoginPage({ onLogin }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full text-right pr-4 pl-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
+                    className="w-full text-left pl-4 pr-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
                     dir="ltr"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-4 text-gray-400 hover:text-[#1e3a8a] transition-colors"
+                    className="absolute right-4 text-gray-400 hover:text-[#1e3a8a] transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -361,7 +359,7 @@ export default function LoginPage({ onLogin }) {
               </div>
 
               <div>
-                <label className="block mb-2 text-gray-600 font-bold text-sm">
+                <label className="block mb-2 text-gray-600 font-bold text-sm text-right">
                   كلمة المرور الجديدة
                 </label>
                 <div className="relative flex items-center">
@@ -370,13 +368,13 @@ export default function LoginPage({ onLogin }) {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full text-right pr-4 pl-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
+                    className="w-full text-left pl-4 pr-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
                     dir="ltr"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute left-4 text-gray-400 hover:text-[#1e3a8a] transition-colors"
+                    className="absolute right-4 text-gray-400 hover:text-[#1e3a8a] transition-colors"
                   >
                     {showNewPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -388,7 +386,7 @@ export default function LoginPage({ onLogin }) {
               </div>
 
               <div>
-                <label className="block mb-2 text-gray-600 font-bold text-sm">
+                <label className="block mb-2 text-gray-600 font-bold text-sm text-right">
                   تأكيد كلمة المرور الجديدة
                 </label>
                 <div className="relative flex items-center">
@@ -397,7 +395,7 @@ export default function LoginPage({ onLogin }) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full text-right pr-4 pl-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
+                    className="w-full text-left pl-4 pr-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
                     dir="ltr"
                   />
                 </div>

@@ -4,7 +4,7 @@ import axios from 'axios';
 /**
  * 1. الإعدادات الأساسية
  */
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://wesal.runasp.net'; 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://wesal.runasp.net';
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -21,9 +21,9 @@ api.interceptors.request.use(
     (config) => {
         // ✅ التعديل الدقيق: البحث عن توكن المدرسة أولاً، ثم توكن النظام الأساسي لتجنب تعارض المشاريع
         const token = localStorage.getItem('wesal_school_token') || localStorage.getItem('wesal_token');
-        
+
         if (token) {
-            config.headers.Authorization = `Bearer ${token}`; 
+            config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
     },
@@ -44,15 +44,15 @@ api.interceptors.response.use(
             const serverError = error.response.data;
             // البحث عن الرسالة سواء كانت في detail أو title
             const message = serverError?.detail || serverError?.title || "";
-            
+
             // إذا كانت الرسالة تحتوي على ذكر للباسورد المؤقت
             if (message.toLowerCase().includes("temporary password")) {
                 console.warn("Temporary password detected - redirecting to change password...");
                 localStorage.setItem('force_change_password', 'true'); // وضع علامة للمتصفح
-                
+
                 // لا تقم بعمل ريلود للصفحة إذا كنا نستخدم skipAuthRedirect
                 if (!skipRedirect) {
-                    window.location.href = '/'; 
+                    window.location.href = '/';
                 }
                 return Promise.reject(error); // إيقاف تنفيذ الطلب الحالي
             }
@@ -62,16 +62,15 @@ api.interceptors.response.use(
         if (error.response && error.response.status === 401) {
             console.warn("Unauthorized access - redirecting to login...");
             localStorage.removeItem('wesal_school_token'); // تنظيف التوكن القديم
-            
+
             // لا تقم بعمل ريلود للصفحة إذا كنا نستخدم skipAuthRedirect
             if (!skipRedirect) {
-                window.location.href = '/'; 
+                window.location.href = '/';
             }
         }
-        
-        const serverError = error.response?.data;
+
         if (serverError) {
-            const message = serverError.detail || serverError.title || "حدث خطأ في الاتصال";
+            const message = serverError.detail || serverError.title || "A connection error occurred";
             error.message = message;
         }
         return Promise.reject(error);
@@ -89,22 +88,22 @@ export const authAPI = {
     loginSystemAdmin: (creds) => api.post('/api/auth/system-admin/sign-in', creds),
     loginParent: (creds) => api.post('/api/auth/parent/sign-in', creds),
     changePassword: (data) => api.patch('/api/users/change-password', data),
-    
+
     // محاكاة جلب المستخدم الحالي (يمكنك لاحقاً التخلي عنها واستخدام الدوال المخصصة لكل لوحة)
     getCurrentUser: () => {
         const savedUser = localStorage.getItem('wesal_user_data');
         if (savedUser) {
             return Promise.resolve({ data: JSON.parse(savedUser) });
         } else {
-            return Promise.resolve({ 
+            return Promise.resolve({
                 data: {
-                    name: "مدرسة وصال التجريبية",
-                    schoolName: "مدرسة وصال التجريبية",
-                    address: "القاهرة - مصر",
-                    location: "القاهرة - مصر",
+                    name: "Wesal Experimental School",
+                    schoolName: "Wesal Experimental School",
+                    address: "Cairo - Egypt",
+                    location: "Cairo - Egypt",
                     phone: "01000000000",
                     email: "info@school.wesal.com"
-                } 
+                }
             });
         }
     }
@@ -164,17 +163,17 @@ export const visitationAPI = {
 export const schoolAPI = {
     // ✅ إضافة دالة جلب بيانات المدرسة الحالية
     getCurrentSchool: () => api.get('/api/schools/me'),
-    
+
     // ✅ إضافة دالة تحديث بيانات المدرسة
     updateSchoolProfile: (id, data) => api.put(`/api/schools/${id}`, data),
 
     listSchools: (params) => api.get('/api/schools', { params }),
     registerSchool: (data) => api.post('/api/schools', data),
     listChildren: (params) => api.get('/api/schools/me/children', { params }),
-    
+
     // إزالة الـ headers ليتم إرسال الـ JSON بشكل صحيح
     uploadReport: (data) => api.post('/api/school-reports', data),
-    
+
     listReportsByChild: (childId) => api.get(`/api/school-reports/${childId}`),
 };
 
@@ -183,7 +182,7 @@ export const schoolAPI = {
  */
 export const complaintsAPI = {
     create: (data) => api.post('/api/complaints', data),
-    listMyComplaints: (params) => api.get('/api/courts/me/complaints', { params }), 
+    listMyComplaints: (params) => api.get('/api/courts/me/complaints', { params }),
     updateStatus: (id, data) => api.patch(`/api/complaints/${id}/status`, data),
 };
 
@@ -218,7 +217,7 @@ export const commonAPI = {
     getUnreadNotificationsCount: () => api.get('/api/notifications/unread-count'),
     listNotifications: (params) => api.get('/api/notifications/me', { params }),
     markAsRead: (id) => api.patch(`/api/notifications/${id}/read`),
-    
+
     // الأجهزة
     registerDevice: (data) => api.post('/api/notifications/devices', data),
     unregisterDevice: (token) => api.delete(`/api/user-devices/${token}`),
