@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // 1. تم إضافة الاستيراد هنا
 import {
   Eye,
   EyeOff,
   Loader2,
   Lock,
   ShieldCheck,
-  ArrowRight,
+  ArrowRight, // تم الاحتفاظ بها تحسباً لاستخدامك لها لاحقاً
   AlertCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "/src/services/api";
 
 export default function LoginPage({ onLogin }) {
+  const navigate = useNavigate(); // 2. تم تعريف الـ navigate هنا
   const [step, setStep] = useState("login");
 
   const [username, setUsername] = useState("");
@@ -147,7 +149,14 @@ export default function LoginPage({ onLogin }) {
       localStorage.removeItem("wesal_school_token");
 
       setTimeout(() => {
-        window.location.href = "/";
+        // 3. التعديل الأهم هنا: استخدام navigate للعودة لصفحة اللوجين داخل المشروع
+        navigate("/login", { replace: true });
+        
+        // إرجاع الواجهة لحالة تسجيل الدخول تحسباً
+        setStep("login");
+        setPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       }, 1500);
     } catch (err) {
       console.error("Change Password Error Details:", err.response?.data);
