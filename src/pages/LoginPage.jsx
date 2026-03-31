@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // 1. تم إضافة الاستيراد هنا
+import { useNavigate } from "react-router-dom";
 import {
   Eye,
   EyeOff,
   Loader2,
   Lock,
   ShieldCheck,
-  ArrowRight, // تم الاحتفاظ بها تحسباً لاستخدامك لها لاحقاً
+  ArrowRight,
   AlertCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import api from "/src/services/api";
+import api from "../services/api"; // تأكد من مسار الـ api الصحيح
+
+// ✅ 1. استدعاء useAuth من الكونتكست
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage({ onLogin }) {
-  const navigate = useNavigate(); // 2. تم تعريف الـ navigate هنا
+  const navigate = useNavigate();
+  // ✅ 2. سحب دالة login
+  const { login } = useAuth();
+
   const [step, setStep] = useState("login");
 
   const [username, setUsername] = useState("");
@@ -27,17 +33,28 @@ export default function LoginPage({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Capture force change password command and open screen automatically
+  // =========================================================================
+  // التنظيف الذكي والتقاط أمر التغيير الإجباري
+  // =========================================================================
   useEffect(() => {
     if (localStorage.getItem("force_change_password") === "true") {
       setStep("change_password");
       setPassword("");
       setError("يرجى تغيير كلمة المرور المؤقتة قبل الدخول إلى لوحة التحكم");
+    } else {
+      // ✅ التنظيف الذكي: مسح توكنات المدرسة فقط، لضمان عدم طرد المستخدم من أنظمة وصال الأخرى
+      localStorage.removeItem("wesal_school_token");
+      localStorage.removeItem("wesal_school_user_role");
+      localStorage.removeItem("wesal_school_user_data");
     }
   }, []);
 
+  // =========================================================================
+  // 1. تسجيل الدخول (باستخدام Username بدلاً من Email)
+  // =========================================================================
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
+
     if (!username || !password) {
       setError("يرجى إدخال اسم المستخدم وكلمة المرور");
       return;
@@ -54,23 +71,32 @@ export default function LoginPage({ onLogin }) {
       });
 
       if (response.data && response.data.token) {
-        localStorage.setItem("wesal_school_token", response.data.token);
+        const token = response.data.token;
+        
+        // ✅ الخطوة 2: استخدام دالة login من الكونتكست للحفظ وتحديث الحالة
+        login(token, "school", null);
 
-        // Check token before entering dashboard
+        // فحص البايلود للتأكد من حالة الباسورد المؤقت
         let isTempPassword = false;
         try {
-          // Decode token to read data inside
-          const payload = JSON.parse(atob(response.data.token.split(".")[1]));
-          // If backend sent that password is temporary
+          // معالجة الـ Base64 بأمان
+          let base64Url = token.split(".")[1];
+          let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+          
+          while (base64.length % 4 !== 0) {
+            base64 += "=";
+          }
+          
+          const payload = JSON.parse(atob(base64));
+
           if (payload.tmp_pwd === "True" || payload.tmp_pwd === true) {
             isTempPassword = true;
           }
         } catch (e) {
-          console.error("Error reading token", e);
+          console.error("Error reading token safely", e);
         }
 
         if (isTempPassword) {
-          // If temporary: prevent entry to dashboard and open change screen immediately
           console.log("Temporary password, redirecting to change screen...");
           setStep("change_password");
           toast("يجب عليك تأمين حسابك بكلمة مرور جديدة قبل الدخول", {
@@ -78,9 +104,11 @@ export default function LoginPage({ onLogin }) {
             duration: 4000,
           });
         } else {
-          // If valid: enter dashboard safely
           console.log("Login successful");
-          onLogin && onLogin(response.data);
+          if (onLogin) onLogin(response.data);
+          
+          // توجيه المستخدم للداشبورد إذا لم تكن تستخدم onLogin كـ prop
+          navigate("/dashboard"); 
         }
       }
     } catch (err) {
@@ -103,7 +131,7 @@ export default function LoginPage({ onLogin }) {
           });
         } else if (err.response.status === 401 || err.response.status === 404) {
           setError(
-            "بيانات الدخول غير صحيحة. تحقق من اسم المستخدم وكلمة المرور.",
+            "بيانات الدخول غير صحيحة. تحقق من اسم المستخدم وكلمة المرور."
           );
         } else {
           setError(errorMsg || "خطأ في الخادم، يرجى المحاولة مرة أخرى لاحقاً.");
@@ -118,6 +146,9 @@ export default function LoginPage({ onLogin }) {
     }
   };
 
+  // =========================================================================
+  // 2. تغيير كلمة المرور الإجبارية
+  // =========================================================================
   const handleChangePassword = async (e) => {
     if (e) e.preventDefault();
 
@@ -145,14 +176,13 @@ export default function LoginPage({ onLogin }) {
 
       toast.success("تم تأمين الحساب بنجاح! يرجى تسجيل الدخول.");
 
+      // تنظيف البيانات المؤقتة الخاصة بالمدرسة فقط
       localStorage.removeItem("force_change_password");
       localStorage.removeItem("wesal_school_token");
 
       setTimeout(() => {
-        // 3. التعديل الأهم هنا: استخدام navigate للعودة لصفحة اللوجين داخل المشروع
-        navigate("/login", { replace: true });
-        
-        // إرجاع الواجهة لحالة تسجيل الدخول تحسباً
+        // العودة لصفحة اللوجين العادية
+        navigate("/", { replace: true }); // تم التعديل لـ "/" ليتناسب مع الـ Routing الافتراضي
         setStep("login");
         setPassword("");
         setNewPassword("");
@@ -167,7 +197,7 @@ export default function LoginPage({ onLogin }) {
         if (Array.isArray(validationErrors)) {
           errorMessage = validationErrors
             .map(
-              (errItem) => errItem.description || "Password does not meet requirements",
+              (errItem) => errItem.description || "Password does not meet requirements"
             )
             .join(" - ");
         } else {
@@ -184,7 +214,7 @@ export default function LoginPage({ onLogin }) {
 
       if (err.response?.status === 400) {
         toast.error(
-          "يرجى التأكد من صحة كلمة المرور المؤقتة واستيفاء المتطلبات.",
+          "يرجى التأكد من صحة كلمة المرور المؤقتة واستيفاء المتطلبات."
         );
       } else {
         toast.error("حدث خطأ أثناء المحاولة.");
@@ -215,7 +245,8 @@ export default function LoginPage({ onLogin }) {
             <img
               src={`${import.meta.env.BASE_URL}logo.svg`}
               alt="Wesal Logo"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain hover:scale-105 transition-transform"
+              onError={(e) => { e.target.src = 'https://placehold.co/128x128/png?text=Wisal'; }}
             />
           </div>
         </div>
@@ -352,11 +383,13 @@ export default function LoginPage({ onLogin }) {
                     placeholder="••••••••"
                     className="w-full text-left pl-4 pr-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
                     dir="ltr"
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 text-gray-400 hover:text-[#1e3a8a] transition-colors"
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -379,11 +412,13 @@ export default function LoginPage({ onLogin }) {
                     placeholder="••••••••"
                     className="w-full text-left pl-4 pr-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
                     dir="ltr"
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                     className="absolute right-4 text-gray-400 hover:text-[#1e3a8a] transition-colors"
+                    disabled={isLoading}
                   >
                     {showNewPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -406,6 +441,7 @@ export default function LoginPage({ onLogin }) {
                     placeholder="••••••••"
                     className="w-full text-left pl-4 pr-12 h-14 bg-gray-50 border border-gray-200 focus:border-[#1e3a8a] focus:ring-2 focus:ring-[#1e3a8a]/20 rounded-2xl transition-all outline-none font-mono text-lg tracking-widest"
                     dir="ltr"
+                    disabled={isLoading}
                   />
                 </div>
               </div>

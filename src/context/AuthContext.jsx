@@ -1,43 +1,55 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
-const AuthContext = createContext();
-
-export const useAuth = () => {
-    return useContext(AuthContext);
-};
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    // ✅ التعديل الأول: استخدام اسم التوكن الصحيح (wesal_school_token) الذي تم حفظه في صفحة تسجيل الدخول
-    const [isLoggedIn, setIsLoggedIn] = useState(() => {
-        return !!localStorage.getItem('wesal_school_token'); 
-    });
+  // 1. التهيئة المتزامنة: نقرأ التوكن الخاص بالمدرسة
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const token = localStorage.getItem('wesal_school_token');
+    return !!token; 
+  });
 
-    const login = (userData) => {
-        setIsLoggedIn(true);
-        // (حفظ التوكن يتم بالفعل داخل LoginPage، لذلك نكتفي بتحديث الـ State هنا)
-    };
+  // حالة التحميل للتأكد من فحص التوكن قبل عرض أي صفحة محمية
+  const [isLoading, setIsLoading] = useState(true);
 
-    const logout = () => {
-        setIsLoggedIn(false);
-        
-        // ✅ التعديل الأهم: مسح التوكن الصحيح (wesal_school_token) والتنظيف الشامل
-        localStorage.removeItem('wesal_school_token'); // تم تصحيح الاسم هنا
-        localStorage.removeItem('force_change_password'); // مسح حالة الباسورد
-        localStorage.removeItem('school_isLoggedIn'); // مسح المتغير القديم احتياطياً
-        
-        // توجيه إجباري لصفحة اللوجين لضمان تفريغ الذاكرة (Memory) من أي بيانات عالقة
-        window.location.href = '/'; 
-    };
+  useEffect(() => {
+    const token = localStorage.getItem('wesal_school_token');
+    setIsAuthenticated(!!token);
+    setIsLoading(false);
+  }, []);
 
-    const value = {
-        isLoggedIn,
-        login,
-        logout
-    };
+  // 2. دالة تسجيل الدخول (مركزية: تحفظ التوكن والبيانات في مفاتيح المدرسة المعزولة)
+  const login = (token, role, userData) => {
+    if (token) localStorage.setItem('wesal_school_token', token);
+    if (role) localStorage.setItem('wesal_school_user_role', role);
+    if (userData) localStorage.setItem('wesal_school_user_data', JSON.stringify(userData));
+    
+    setIsAuthenticated(true);
+  };
+  
+  // 3. دالة تسجيل الخروج (التنظيف الذكي الشامل لبيانات المدرسة فقط)
+  const logout = () => {
+    localStorage.removeItem('wesal_school_token');
+    localStorage.removeItem('wesal_school_user_role');
+    localStorage.removeItem('wesal_school_user_data');
+    localStorage.removeItem('force_change_password');
+    localStorage.removeItem('school_isLoggedIn'); // مسح المتغير القديم احتياطياً
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+    setIsAuthenticated(false);
+  };
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// Hook مخصص لتسهيل الاستخدام
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };

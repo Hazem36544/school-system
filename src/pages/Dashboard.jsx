@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import DashboardHeader from '../components/DashboardHeader';
 import StatCard from '../components/StatCard';
-import StudentCard from '../components/StudentCard';
-import SideWidgets from '../components/SideWidgets';
+// import StudentCard from '../components/StudentCard'; // تأكد إنك بتستخدمه أو امسحه لو مش محتاجه
+// import SideWidgets from '../components/SideWidgets'; // تأكد إنك بتستخدمه أو امسحه لو مش محتاجه
 import { Users, FileText, Award, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-// ✅ تم إزالة authAPI واستخدام schoolAPI فقط لأنها تحتوي على المسار المخصص للمدرسة
-import { schoolAPI } from '../services/api';
+
+// ✅ 1. التعديل هنا: استدعاء authAPI مع schoolAPI
+import { authAPI, schoolAPI } from '../services/api';
 
 const Dashboard = () => {
     const [students, setStudents] = useState([]);
@@ -20,10 +21,10 @@ const Dashboard = () => {
             try {
                 setLoading(true);
 
-                // Fetch student list and real school data from the server concurrently
+                // ✅ 2. التعديل هنا: استخدام authAPI لجلب بيانات المدرسة الحالية
                 const [childrenResponse, schoolResponse] = await Promise.all([
                     schoolAPI.listChildren({ PageNumber: 1, PageSize: 50 }),
-                    schoolAPI.getCurrentSchool()
+                    authAPI.getCurrentSchool()
                 ]);
 
                 setStudents(childrenResponse.data?.items || []);
@@ -32,7 +33,7 @@ const Dashboard = () => {
 
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
-                toast.error("An error occurred while fetching data from the server");
+                toast.error("حدث خطأ أثناء جلب البيانات من السيرفر");
             } finally {
                 setLoading(false);
             }
@@ -68,7 +69,6 @@ const Dashboard = () => {
                             />
                         ))}
                     </div>
-
 
                 </div>
             </div>
