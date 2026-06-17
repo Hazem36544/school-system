@@ -3,9 +3,14 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // 1. التهيئة المتزامنة: نقرأ التوكن الخاص بالمدرسة
+  // 1. التهيئة المتزامنة: نقرأ التوكن وبيانات المدرسة
+  const [user, setUser] = useState(() => {
+    const savedUser = sessionStorage.getItem('wesal_school_user_data');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const token = localStorage.getItem('wesal_school_token');
+    const token = sessionStorage.getItem('wesal_school_token');
     return !!token; 
   });
 
@@ -13,33 +18,41 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('wesal_school_token');
-    setIsAuthenticated(!!token);
     setIsLoading(false);
   }, []);
 
-  // 2. دالة تسجيل الدخول (مركزية: تحفظ التوكن والبيانات في مفاتيح المدرسة المعزولة)
-  const login = (token, role, userData) => {
-    if (token) localStorage.setItem('wesal_school_token', token);
-    if (role) localStorage.setItem('wesal_school_user_role', role);
-    if (userData) localStorage.setItem('wesal_school_user_data', JSON.stringify(userData));
+  // ✅ 2. التعديل الجذري: تطابق ترتيب المتغيرات (userData الأول ثم token)
+  const login = (userData, token) => {
+    // حفظ التوكن في مفتاح المدرسة المعزول
+    if (token) sessionStorage.setItem('wesal_school_token', token);
     
+    // حفظ بيانات المدرسة
+    if (userData) {
+      sessionStorage.setItem('wesal_school_user_data', JSON.stringify(userData));
+      if (userData.role) {
+        sessionStorage.setItem('wesal_school_user_role', userData.role);
+      }
+    }
+    
+    setUser(userData);
     setIsAuthenticated(true);
   };
   
   // 3. دالة تسجيل الخروج (التنظيف الذكي الشامل لبيانات المدرسة فقط)
   const logout = () => {
-    localStorage.removeItem('wesal_school_token');
-    localStorage.removeItem('wesal_school_user_role');
-    localStorage.removeItem('wesal_school_user_data');
-    localStorage.removeItem('force_change_password');
-    localStorage.removeItem('school_isLoggedIn'); // مسح المتغير القديم احتياطياً
+    sessionStorage.removeItem('wesal_school_token');
+    sessionStorage.removeItem('wesal_school_user_role');
+    sessionStorage.removeItem('wesal_school_user_data');
+    sessionStorage.removeItem('force_change_password');
+    sessionStorage.removeItem('school_isLoggedIn'); // مسح المتغير القديم احتياطياً
 
+    setUser(null);
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
+    // ✅ توفير user في الـ Provider
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

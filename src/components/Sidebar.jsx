@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, User, LogOut } from 'lucide-react';
+// ✅ تم استبدال Search بـ Users لتدل على الطلاب
+import { Home, Users, User, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const Sidebar = () => {
+// استقبال الـ Props الخاصة بحالة القائمة
+const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const { logout } = useAuth();
 
@@ -18,7 +20,10 @@ const Sidebar = () => {
 
   return (
     <div
-      className="fixed top-0 right-0 h-screen w-28 bg-[#1e3a8a] flex flex-col items-center py-6 z-50 rounded-l-[2rem] shadow-2xl font-sans border-l border-white/5 transition-all duration-300"
+      // تعديل الكلاسات هنا لإضافة حركة الانزلاق والتجاوب مع الشاشات
+      className={`fixed top-0 right-0 h-screen w-28 bg-[#1e3a8a] flex flex-col items-center py-6 z-50 rounded-l-[2rem] shadow-2xl font-sans border-l border-white/5 transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}
       dir="rtl"
     >
 
@@ -35,17 +40,19 @@ const Sidebar = () => {
       {/* 2. Navigation Links */}
       <nav className="flex flex-col items-center gap-3 w-full px-2 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden">
 
-        <Link to="/dashboard" className={getLinkClass('/dashboard')}>
+        {/* إضافة onClick لإغلاق القائمة عند اختيار صفحة في الموبايل */}
+        <Link to="/dashboard" className={getLinkClass('/dashboard')} onClick={() => setIsOpen && setIsOpen(false)}>
           <Home className="w-6 h-6 mb-0.5 transition-colors duration-300" />
           <span className="text-[11px] font-bold tracking-wide text-center leading-tight">الرئيسية</span>
         </Link>
 
-        <Link to="/search" className={getLinkClass('/search')}>
-          <Search className="w-6 h-6 mb-0.5 transition-colors duration-300" />
-          <span className="text-[11px] font-bold tracking-wide text-center leading-tight">البحث عن طالب</span>
+        {/* ✅ التعديل هنا: تغيير الأيقونة إلى Users والكلمة إلى "الطلاب" */}
+        <Link to="/search" className={getLinkClass('/search')} onClick={() => setIsOpen && setIsOpen(false)}>
+          <Users className="w-6 h-6 mb-0.5 transition-colors duration-300" />
+          <span className="text-[11px] font-bold tracking-wide text-center leading-tight">الطلاب</span>
         </Link>
 
-        <Link to="/account" className={getLinkClass('/account')}>
+        <Link to="/account" className={getLinkClass('/account')} onClick={() => setIsOpen && setIsOpen(false)}>
           <User className="w-6 h-6 mb-0.5 transition-colors duration-300" />
           <span className="text-[11px] font-bold tracking-wide text-center leading-tight">الحساب</span>
         </Link>

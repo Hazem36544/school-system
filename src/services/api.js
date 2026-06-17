@@ -1,10 +1,12 @@
-console.log("Current API URL:", import.meta.env.VITE_API_URL);
 import axios from 'axios';
+
+// ✅ 1. الـ console.log لازم تكون بعد الـ import
+console.log("Current API URL:", import.meta.env.VITE_API_URL);
 
 /**
  * 1. الإعدادات الأساسية
  */
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://wesal.runasp.net';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://wesal.runasp.net';
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -15,12 +17,12 @@ const api = axios.create({
 });
 
 /**
- * 2. Request Interceptor: حقن التوكن الخاص بالمدرسة فقط
+ * 2. Request Interceptor: حقن التوكن الخاص بالمدرسة
  */
 api.interceptors.request.use(
     (config) => {
-        // ✅ التعديل الدقيق: استخدام مفتاح المدرسة المعزول فقط
-        const token = localStorage.getItem('wesal_school_token');
+        // ✅ بنقرأ التوكن من المفتاح المعزول
+        const token = sessionStorage.getItem('wesal_school_token');
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -38,32 +40,33 @@ api.interceptors.response.use(
     (error) => {
         const skipRedirect = error.config?.skipAuthRedirect;
 
-        // ✅ --- التقاط 403 للتوكن المقيد (الباسورد المؤقت) ---
+        // --- التقاط 403 للتوكن المقيد (الباسورد المؤقت) ---
         if (error.response && error.response.status === 403) {
             const serverError = error.response.data;
             const message = serverError?.detail || serverError?.title || "";
 
             if (message.toLowerCase().includes("temporary password")) {
                 console.warn("Temporary password detected - redirecting to change password...");
-                localStorage.setItem('force_change_password', 'true'); 
+                sessionStorage.setItem('force_change_password', 'true'); 
 
                 if (!skipRedirect) {
-                    window.location.href = '/';
+                    window.location.hash = '/login'; // توجيه آمن للـ HashRouter
                 }
                 return Promise.reject(error); 
             }
         }
 
-        // ✅ --- التعامل العادي مع 401 (انتهاء صلاحية التوكن) ---
+        // --- التعامل العادي مع 401 (انتهاء صلاحية التوكن) ---
         if (error.response && error.response.status === 401) {
             console.warn("Unauthorized access - redirecting to login...");
-            // ✅ التنظيف الذكي: مسح بيانات المدرسة فقط
-            localStorage.removeItem('wesal_school_token'); 
-            localStorage.removeItem('wesal_school_user_data'); 
-            localStorage.removeItem('wesal_school_user_role');
+            
+            // التنظيف الذكي: مسح بيانات المدرسة فقط
+            sessionStorage.removeItem('wesal_school_token'); 
+            sessionStorage.removeItem('wesal_school_user_data'); 
+            sessionStorage.removeItem('wesal_school_user_role');
 
             if (!skipRedirect) {
-                window.location.href = '/';
+                window.location.hash = '/login'; // توجيه آمن للـ HashRouter
             }
         }
 
@@ -80,11 +83,8 @@ api.interceptors.response.use(
  * --- [ A. خدمات الهوية - Auth ] ---
  */
 export const authAPI = {
-    // ⚠️ انتبه: البيانات المرسلة هنا ستكون { username, password }
     loginSchool: (creds) => api.post('/api/auth/school/sign-in', creds),
     changePassword: (data) => api.patch('/api/users/change-password', data),
-    
-    // ✅ جلب بيانات المدرسة الحالية
     getCurrentSchool: () => api.get('/api/schools/me')
 };
 
@@ -92,33 +92,27 @@ export const authAPI = {
  * --- [ E. خدمات المدرسة - Schools ] ---
  */
 export const schoolAPI = {
-    // تحديث بيانات المدرسة
     updateSchoolProfile: (id, data) => api.put(`/api/schools/${id}`, data),
     listSchools: (params) => api.get('/api/schools', { params }),
     registerSchool: (data) => api.post('/api/schools', data),
     listChildren: (params) => api.get('/api/schools/me/children', { params }),
-    // رفع تقرير المدرسة (يتم الإرسال كـ JSON بناءً على الـ Swagger الجديد)
     uploadReport: (data) => api.post('/api/school-reports', data),
-    listReportsByChild: (childId) => api.get(`/api/school-reports/${childId}`),
+    // ✅ تم التعديل هنا: إضافة params كمعامل ثاني وارساله مع الطلب
+    listReportsByChild: (childId, params) => api.get(`/api/school-reports/${childId}`, { params }),
 };
 
 /**
  * --- [ I. الإشعارات والملفات - Common ] ---
  */
 export const commonAPI = {
-    // المستندات
     uploadDocument: (formData) => api.post('/api/documents', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
     getDocument: (id) => api.get(`/api/documents/${id}`),
     deleteDocument: (id) => api.delete(`/api/documents/${id}`),
-
-    // الإشعارات
     getUnreadNotificationsCount: () => api.get('/api/notifications/unread-count'),
     listNotifications: (params) => api.get('/api/notifications/me', { params }),
     markAsRead: (id) => api.patch(`/api/notifications/${id}/read`),
-
-    // الأجهزة
     registerDevice: (data) => api.post('/api/notifications/devices', data),
     unregisterDevice: (token) => api.delete(`/api/user-devices/${token}`),
 };

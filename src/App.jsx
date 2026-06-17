@@ -1,23 +1,31 @@
-import React from 'react';
-// ✅ 1. تغيير BrowserRouter لـ HashRouter
+import React, { Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-// ✅ 2. استدعاء AuthProvider و useAuth من الكونتكست الجديد
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
-import LoginPage from './pages/LoginPage';
-import Dashboard from './pages/Dashboard';
-import StudentSearch from './pages/StudentSearch';
-import StudentReports from './pages/StudentReports';
-import AddReport from './pages/AddReport';
-import SchoolAccount from './pages/SchoolAccount';
+import { Loader2 } from 'lucide-react'; 
+import { Toaster } from 'react-hot-toast'; 
 
-// ✅ 3. إنشاء مكون ProtectedRoute للتحقق من الجلسة (نفس اللي عملناه في مركز الرؤية)
+// ✅ استدعاء الـ Layout الجديد
+import SchoolLayout from './layouts/SchoolLayout';
+
+// تحميل الصفحات ديناميكياً
+const LoginPage = lazy(() => import('./pages/loginPage/LoginPage'));
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
+const StudentSearch = lazy(() => import('./pages/studentSearch/StudentSearch'));
+const StudentReports = lazy(() => import('./pages/studentReports/StudentReports'));
+const SchoolAccount = lazy(() => import('./pages/schoolAccount/SchoolAccount'));
+
+// مكون حماية المسارات
 const ProtectedRoute = ({ children }) => {
-  // استخدام isAuthenticated و isLoading من الكونتكست الجديد
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="h-screen flex items-center justify-center font-bold text-[#1e3a8a]">جاري التحقق من الصلاحيات...</div>;
+    return (
+      <div className="h-screen flex flex-col items-center justify-center font-bold text-[#1e3a8a] bg-[#F3F4F6] font-sans" dir="rtl">
+        <Loader2 className="w-12 h-12 animate-spin text-[#1e3a8a] mb-4" />
+        <span className="text-[#1e3a8a] font-bold text-lg">جاري التحقق من الصلاحيات...</span>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -27,76 +35,36 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// مكون منفصل لمسارات التطبيق
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
-  
-  // التحقق من وجود أمر إجباري لتغيير كلمة المرور
-  const needsPasswordChange = localStorage.getItem('force_change_password') === 'true';
+  const needsPasswordChange = sessionStorage.getItem('force_change_password') === 'true';
 
   return (
     <Router>
       <ScrollToTop />
-      <Routes>
-        {/* مسار اللوجين */}
-        <Route 
-          path="/" 
-          element={(isAuthenticated && !needsPasswordChange) ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
-        />
-        
-        {/* ✅ مسارات محمية باستخدام ProtectedRoute */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/search" 
-          element={
-            <ProtectedRoute>
-              <StudentSearch />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/reports/:id" 
-          element={
-            <ProtectedRoute>
-              <StudentReports />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/add-report" 
-          element={
-            <ProtectedRoute>
-              <AddReport />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/add-report/:id" 
-          element={
-            <ProtectedRoute>
-              <AddReport />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/account" 
-          element={
-            <ProtectedRoute>
-              <SchoolAccount />
-            </ProtectedRoute>
-          } 
-        />
+      <Suspense fallback={
+        <div className="h-screen flex flex-col items-center justify-center font-sans bg-[#F3F4F6]" dir="rtl">
+          <Loader2 className="w-12 h-12 animate-spin text-[#1e3a8a] mb-4" />
+          <span className="font-bold text-[#1e3a8a] text-lg">جاري تحميل الشاشة...</span>
+        </div>
+      }>
+        <Routes>
+          <Route 
+            path="/" 
+            element={(isAuthenticated && !needsPasswordChange) ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
+          />
+          
+          {/* ✅ تجميع المسارات المحمية تحت الـ SchoolLayout */}
+          <Route element={<ProtectedRoute><SchoolLayout /></ProtectedRoute>}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/search" element={<StudentSearch />} />
+            <Route path="/reports/:id" element={<StudentReports />} />
+            <Route path="/account" element={<SchoolAccount />} />
+          </Route>
 
-        {/* مسار افتراضي */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 };
@@ -104,6 +72,43 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
+      <Toaster 
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            fontFamily: '"Times New Roman", "Traditional Arabic", serif',
+            fontWeight: 'bold',
+            borderRadius: '9999px', 
+            padding: '12px 24px',
+            direction: 'rtl',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+          },
+          success: {
+            style: {
+              background: '#ECFDF5', 
+              color: '#065F46',      
+              border: '1px solid #A7F3D0',
+            },
+            iconTheme: {
+              primary: '#10B981',    
+              secondary: '#FFFFFF',
+            },
+          },
+          error: {
+            style: {
+              background: '#FEF2F2', 
+              color: '#991B1B',
+              border: '1px solid #FECACA',
+            },
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#FFFFFF',
+            },
+          },
+        }} 
+      />
       <AppRoutes />
     </AuthProvider>
   );
